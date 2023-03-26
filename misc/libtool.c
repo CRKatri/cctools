@@ -62,7 +62,7 @@
 #if defined(__OPENSTEP__) || defined(__GONZO_BUNSEN_BEAKER__)
 #include <servers/netname.h>
 #else
-#include <servers/bootstrap.h>
+//#include <servers/bootstrap.h>
 #endif
 
 /*
@@ -2739,10 +2739,14 @@ struct ofile *ofile)
 	    library_size = SARMAG;
 	    if(same_toc == FALSE)
 		library_size += archs[0].toc_size;
+#if __APPLE__
 	    if((r = vm_allocate(mach_task_self(), (vm_address_t *)&library,
 				library_size, TRUE)) != KERN_SUCCESS)
 		mach_fatal(r, "can't vm_allocate() buffer for output file: %s "
 			   "of size %llu", output, library_size);
+#else
+	library = calloc(1, library_size);
+#endif
 
 	    /* put in the archive magic string in the buffer */
 	    p = library;
@@ -2768,11 +2772,15 @@ struct ofile *ofile)
 		return;
 	    }
 
+#if __APPLE__
 	    if((r = vm_deallocate(mach_task_self(), (vm_address_t)library,
 				  library_size)) != KERN_SUCCESS){
 		my_mach_error(r, "can't vm_deallocate() buffer for output file");
 		return;
 	    }
+#else
+			free(library);
+#endif
 	} /* write_in_place == TRUE */
 	else { /* if (write_in_place != TRUE) */
 	    char *library, *p, *flush_start;
@@ -2793,11 +2801,15 @@ struct ofile *ofile)
 	     * with zero bytes. The range will be deallocated in pieces via
 	     * output_flush, rather than vm_deallocated at the end.
 	     */
+#if __APPLE__
 	    if((r = vm_allocate(mach_task_self(), (vm_address_t *)&library,
 				library_size, TRUE)) != KERN_SUCCESS)
 		mach_fatal(r,
 			   "can't vm_allocate() buffer for output file: %s of "
 			   "size %llu", output, library_size);
+#else
+			library = calloc(1, library_size);
+#endif
 	    
 	    /*
 	     * Create the output file.
@@ -3055,12 +3067,16 @@ struct ofile *ofile)
 		    system_error("can't write temporary file: %s", tempfile);
 		    return;
 		}
+#if __APPLE__
 		if((r = vm_deallocate(mach_task_self(), (vm_address_t)library,
 				      library_size)) != KERN_SUCCESS){
 		    my_mach_error(r, "can't vm_deallocate() buffer for output "
 				  "file");
 		    return;
 		}
+#else
+		free(library);
+#endif
 	    }
 	    else{
 		final_output_flush(library, fd);
@@ -3496,9 +3512,13 @@ uint64_t size)
 	    if(write64(fd, library + write_offset, write_size) !=
 	       (ssize_t)write_size)
 		system_fatal("can't write to output file");
+#if __APPLE__
 	    if((r = vm_deallocate(mach_task_self(), (vm_address_t)(library +
 				  write_offset), write_size)) != KERN_SUCCESS)
 		mach_fatal(r, "can't vm_deallocate() buffer for output file");
+#else
+			//free(library + write_offset);
+#endif
 	}
 #ifdef DEBUG
 	else{
@@ -3559,9 +3579,13 @@ int fd)
 	    if(write64(fd, library + write_offset, write_size) !=
 	       (ssize_t)write_size)
 		system_fatal("can't write to output file");
+#if __APPLE__
 	    if((r = vm_deallocate(mach_task_self(), (vm_address_t)(library +
 				  write_offset), write_size)) != KERN_SUCCESS)
 		mach_fatal(r, "can't vm_deallocate() buffer for output file");
+#else
+			//free(library + write_offset);
+#endif
 	}
 	output_blocks = NULL;
 }

@@ -69,6 +69,7 @@
 #include "stuff/diagnostics.h"
 #include <math.h>
 #include <unistd.h>
+#include <libkern/OSByteOrder.h>
 
 /* The maximum section alignment allowed to be specified, as a power of two */
 #define MAXSECTALIGN		15 /* 2**15 or 0x8000 */
